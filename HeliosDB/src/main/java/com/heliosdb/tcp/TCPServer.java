@@ -5,6 +5,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import com.heliosdb.parser.CommandParser;
 
 public class TCPServer {
 
@@ -46,13 +47,17 @@ public class TCPServer {
             PrintWriter writer =
                     new PrintWriter(clientSocket.getOutputStream(), true);
 
+            CommandParser parser = new CommandParser();
+
             String line;
 
             while ((line = reader.readLine()) != null) {
 
                 System.out.println("Received: " + line);
 
-                writer.println("Echo: " + line);
+                String response = parser.parse(line);
+
+                writer.println(response);
 
             }
 
