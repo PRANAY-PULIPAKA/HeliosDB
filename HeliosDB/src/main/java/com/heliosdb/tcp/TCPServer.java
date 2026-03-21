@@ -1,69 +1,55 @@
 package com.heliosdb.tcp;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import com.heliosdb.parser.CommandParser;
+
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import com.heliosdb.parser.CommandParser;
 
 public class TCPServer {
 
     private final int port;
+    private final CommandParser parser;
 
-    public TCPServer(int port) {
+    public TCPServer(int port, CommandParser parser) {
         this.port = port;
+        this.parser = parser;
     }
 
     public void start() {
 
         try (ServerSocket serverSocket = new ServerSocket(port)) {
 
-            System.out.println("HeliosDB TCP Server started on port " + port);
+            System.out.println("Server started on port " + port);
 
             while (true) {
-
-                Socket clientSocket = serverSocket.accept();
-
-                System.out.println("Client connected: " + clientSocket.getInetAddress());
-
-                handleClient(clientSocket);
-
+                Socket socket = serverSocket.accept();
+                new Thread(() -> handleClient(socket)).start();
             }
 
-        } catch (Exception e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 
-    private void handleClient(Socket clientSocket) {
+    private void handleClient(Socket socket) {
 
-        try {
-
-            BufferedReader reader =
-                    new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-
-            PrintWriter writer =
-                    new PrintWriter(clientSocket.getOutputStream(), true);
-
-            CommandParser parser = new CommandParser();
+        try (
+                BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(socket.getInputStream()));
+                PrintWriter writer = new PrintWriter(
+                        socket.getOutputStream(), true)
+        ) {
 
             String line;
 
             while ((line = reader.readLine()) != null) {
-
-                System.out.println("Received: " + line);
-
                 String response = parser.parse(line);
-
                 writer.println(response);
-
             }
 
-        } catch (Exception e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 }

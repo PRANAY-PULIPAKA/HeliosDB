@@ -1,68 +1,79 @@
 package com.heliosdb.parser;
 
+import com.heliosdb.service.KeyValueService;
+
 public class CommandParser {
 
-        public String parse(String input) {
+    private final KeyValueService service;
 
-            if (input == null || input.isEmpty()) {
-                return "ERROR: Empty command";
-            }
+    public CommandParser(KeyValueService service) {
+        this.service = service;
+    }
 
-            String[] tokens = input.split(" ");
+    public String parse(String input) {
 
-            String command = tokens[0].toUpperCase();
-
-            switch (command) {
-
-                case "SET":
-                    return handleSet(tokens);
-
-                case "GET":
-                    return handleGet(tokens);
-
-                case "DELETE":
-                    return handleDelete(tokens);
-
-                default:
-                    return "ERROR: Unknown command";
-            }
+        if (input == null || input.trim().isEmpty()) {
+            return "ERROR: Empty command";
         }
 
-        private String handleSet(String[] tokens) {
+        String[] tokens = input.trim().split("\\s+");
 
-            if (tokens.length != 3) {
-                return "ERROR: SET requires key and value";
-            }
+        String command = tokens[0].toUpperCase();
 
-            String key = tokens[1];
-            String value = tokens[2];
+        switch (command) {
 
-            // Temporary (real storage comes Day 3)
-            return "OK (SET " + key + " = " + value + ")";
+            case "SET":
+                return handleSet(tokens);
+
+            case "GET":
+                return handleGet(tokens);
+
+            case "DELETE":
+                return handleDelete(tokens);
+
+            default:
+                return "ERROR: Unknown command";
+        }
+    }
+
+    private String handleSet(String[] tokens) {
+
+        if (tokens.length < 3) {
+            return "ERROR: SET requires key and value";
         }
 
-        private String handleGet(String[] tokens) {
+        String key = tokens[1];
+        String value = tokens[2];
 
-            if (tokens.length != 2) {
-                return "ERROR: GET requires key";
-            }
-
-            String key = tokens[1];
-
-            // Temporary
-            return "VALUE of " + key;
+        if (tokens.length == 4) {
+            long ttl = Long.parseLong(tokens[3]);
+            service.set(key, value, ttl);
+        } else {
+            service.set(key, value);
         }
 
-        private String handleDelete(String[] tokens) {
+        return "OK";
+    }
 
-            if (tokens.length != 2) {
-                return "ERROR: DELETE requires key";
-            }
+    private String handleGet(String[] tokens) {
 
-            String key = tokens[1];
-
-            // Temporary
-            return "DELETED " + key;
+        if (tokens.length != 2) {
+            return "ERROR: GET requires key";
         }
+
+        String value = service.get(tokens[1]);
+
+        return value == null ? "(nil)" : value;
+    }
+
+    private String handleDelete(String[] tokens) {
+
+        if (tokens.length != 2) {
+            return "ERROR: DELETE requires key";
+        }
+
+        service.delete(tokens[1]);
+
+        return "OK";
+    }
 }
-
