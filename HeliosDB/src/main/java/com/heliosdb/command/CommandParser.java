@@ -12,7 +12,13 @@ public class CommandParser {
 
     public String parse(String input) {
         try {
-            String[] parts = input.split(" ");
+
+            if (input == null || input.trim().isEmpty()) {
+                return "ERROR: Empty command";
+            }
+
+
+            String[] parts = input.trim().split("\\s+");
 
             String command = parts[0].toUpperCase();
 
@@ -46,8 +52,12 @@ public class CommandParser {
 
         // SET key value ttl
         if (parts.length == 4) {
-            long ttl = Long.parseLong(parts[3]);
-            service.set(key, value, ttl);
+            try {
+                long ttl = Long.parseLong(parts[3]);
+                service.set(key, value, ttl);
+            } catch (NumberFormatException e) {
+                return "ERROR: TTL must be a number";
+            }
         } else {
             service.set(key, value);
         }
