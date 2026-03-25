@@ -1,6 +1,12 @@
 package com.heliosdb.store;
+import java.util.Set;
 
 public interface KeyValueStore {
+
+    boolean exists(String key);
+    Set<String> keys();
+
+    int size();
 
     void set(String key, String value);
 
@@ -8,5 +14,5 @@ public interface KeyValueStore {
 
     String get(String key);
 
-    void delete(String key);
+    boolean delete(String key);
 }

@@ -2,6 +2,7 @@ package com.heliosdb.store;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.Set;
 
 public class InMemoryStore implements KeyValueStore {
 
@@ -41,7 +42,7 @@ public class InMemoryStore implements KeyValueStore {
 
 
         if (wrapper.getExpiryTime() != -1 && now > wrapper.getExpiryTime()) {
-            System.out.println("KEY EXPIRED");
+            System.out.println("KEY EXPIRED (lazy)");
             store.remove(key);
             return null;
         }
@@ -50,7 +51,45 @@ public class InMemoryStore implements KeyValueStore {
     }
 
     @Override
-    public void delete(String key) {
-        store.remove(key);
+    public boolean delete(String key) {
+        return store.remove(key) != null;
+    }
+
+    @Override
+    public boolean exists(String key) {
+        return get(key) != null;
+    }
+
+    @Override
+    public Set<String> keys() {
+        return store.keySet();
+    }
+
+    // For testing
+    @Override
+    public int size() {
+        return store.size();
+    }
+
+    public void cleanUpExpiredKeys() {
+
+        int removed = 0;
+        long now = System.currentTimeMillis();
+
+        for (Map.Entry<String, ValueWrapper> entry : store.entrySet()) {
+
+            ValueWrapper wrapper = entry.getValue();
+
+            if (wrapper.getExpiryTime() != -1 &&
+                    now > wrapper.getExpiryTime()) {
+
+                store.remove(entry.getKey());
+                removed++;
+            }
+        }
+
+        if (removed > 0) {
+            System.out.println("TTL Cleanup removed: " + removed);
+        }
     }
 }

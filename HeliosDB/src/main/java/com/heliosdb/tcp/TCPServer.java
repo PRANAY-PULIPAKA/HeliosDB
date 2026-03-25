@@ -1,6 +1,6 @@
 package com.heliosdb.tcp;
 
-import com.heliosdb.parser.CommandParser;
+import com.heliosdb.command.CommandParser;
 
 import java.io.*;
 import java.net.ServerSocket;

@@ -2,6 +2,9 @@ package com.heliosdb.service;
 
 import com.heliosdb.store.KeyValueStore;
 
+import java.util.Set;
+import java.util.stream.Collectors;
+
 public class KeyValueService {
 
     private final KeyValueStore store;
@@ -22,23 +25,35 @@ public class KeyValueService {
             throw new IllegalArgumentException("TTL must be positive");
         }
 
-        System.out.println(" SERVICE CALLED TTL seconds = " + ttlSeconds);
-
         long ttlMillis = ttlSeconds * 1000;
-
-        System.out.println("TTL millis = " + ttlMillis);
-
         store.set(key, value, ttlMillis);
     }
 
     public String get(String key) {
         validateKey(key);
-        return store.get(key);
+        return store.get(key); // handles lazy expiry
     }
 
-    public void delete(String key) {
+    public boolean delete(String key) {
         validateKey(key);
-        store.delete(key);
+        return store.delete(key);
+    }
+
+    public boolean exists(String key) {
+        validateKey(key);
+        return store.exists(key); // internally uses get()
+    }
+
+    public Set<String> keys() {
+        return store.keys().stream()
+                .filter(key -> store.get(key) != null) // removes expired keys
+                .collect(Collectors.toSet());
+    }
+
+    public int size() {
+        return (int) store.keys().stream()
+                .filter(key -> store.get(key) != null) // removes expired
+                .count();
     }
 
     private void validateKey(String key) {
