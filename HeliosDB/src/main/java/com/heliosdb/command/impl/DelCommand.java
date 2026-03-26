@@ -1,21 +1,25 @@
 package com.heliosdb.command.impl;
+
 import com.heliosdb.command.Command;
 import com.heliosdb.service.KeyValueService;
-
 
 public class DelCommand implements Command {
 
     private final KeyValueService service;
+    private final String key;
 
-    public DelCommand(KeyValueService service) {
+    public DelCommand(KeyValueService service, String[] tokens) {
         this.service = service;
+
+        if (tokens.length != 2) {
+            throw new IllegalArgumentException("DEL key");
+        }
+
+        this.key = tokens[1];
     }
 
     @Override
-    public String execute(String[] args) {
-        if (args.length != 2) return "ERROR";
-
-        boolean deleted = service.delete(args[1]);
-        return deleted ? "(integer) 1" : "(integer) 0";
+    public String execute() {
+        return service.delete(key) ? "(integer) 1" : "(integer) 0";
     }
 }
