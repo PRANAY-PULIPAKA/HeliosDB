@@ -11,6 +11,9 @@ public class TCPServer {
     private final int port;
     private final CommandParser parser;
 
+    private ServerSocket serverSocket;
+    private volatile boolean running = true;
+
     public TCPServer(int port, CommandParser parser) {
         this.port = port;
         this.parser = parser;
@@ -18,15 +21,35 @@ public class TCPServer {
 
     public void start() {
 
-        try (ServerSocket serverSocket = new ServerSocket(port)) {
-
+        try {
+            serverSocket = new ServerSocket(port);
             System.out.println("Server started on port " + port);
 
-            while (true) {
-                Socket socket = serverSocket.accept();
-                new Thread(() -> handleClient(socket)).start();
+            while (running) {
+                try {
+                    Socket socket = serverSocket.accept();
+                    new Thread(() -> handleClient(socket)).start();
+                } catch (IOException e) {
+                    if (!running) {
+                        System.out.println("Server shutting down...");
+                        break;
+                    }
+                    e.printStackTrace();
+                }
             }
 
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void stop() {
+        running = false;
+        try {
+            if (serverSocket != null && !serverSocket.isClosed()) {
+                serverSocket.close();
+                System.out.println("Server socket closed");
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }

@@ -16,15 +16,25 @@ public class AOFLogger {
         try {
             writer.write(command);
             writer.newLine();
-            writer.flush();
+            writer.flush(); // safe for now (later we optimize)
         } catch (IOException e) {
             System.out.println("Failed to write to AOF: " + e.getMessage());
         }
     }
 
-    public void close() {
+    public synchronized void flush() {
+        try {
+            writer.flush();
+            System.out.println("AOF flushed");
+        } catch (IOException e) {
+            System.out.println("Flush failed");
+        }
+    }
+
+    public synchronized void close() {
         try {
             writer.close();
+            System.out.println("AOF logger closed");
         } catch (IOException e) {
             System.out.println("Failed to close AOF logger");
         }

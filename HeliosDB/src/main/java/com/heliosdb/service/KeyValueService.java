@@ -11,16 +11,25 @@ public class KeyValueService {
     private final KeyValueStore store;
     private final AOFLogger logger;
 
+    private boolean isReplay = false; // 🔥 IMPORTANT
+
     public KeyValueService(KeyValueStore store, AOFLogger logger) {
         this.store = store;
         this.logger = logger;
+    }
+
+    // 🔥 Replay mode setter
+    public void setReplayMode(boolean replay) {
+        this.isReplay = replay;
     }
 
     public String set(String key, String value) {
         validateKey(key);
         store.set(key, value);
 
-        logger.log("SET " + key + " " + value);
+        if (!isReplay) {
+            logger.log("SET " + key + " " + value);
+        }
 
         return "OK";
     }
@@ -35,7 +44,9 @@ public class KeyValueService {
         long ttlMillis = ttlSeconds * 1000;
         store.set(key, value, ttlMillis);
 
-        logger.log("SETEX " + key + " " + ttlSeconds + " " + value);
+        if (!isReplay) {
+            logger.log("SETEX " + key + " " + ttlSeconds + " " + value);
+        }
     }
 
     public String get(String key) {
@@ -47,8 +58,8 @@ public class KeyValueService {
         validateKey(key);
         boolean result = store.delete(key);
 
-        if (result) {
-            logger.log("DEL " + key); // logging delete
+        if (result && !isReplay) {
+            logger.log("DEL " + key);
         }
 
         return result;

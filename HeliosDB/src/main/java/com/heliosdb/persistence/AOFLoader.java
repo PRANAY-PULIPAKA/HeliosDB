@@ -30,13 +30,16 @@ public class AOFLoader {
         }
 
         if (fastStart) {
-            System.out.println(" Fast start enabled. Skipping AOF load.");
+            System.out.println("Fast start enabled. Skipping AOF load.");
             return;
         }
 
         System.out.println("Loading AOF...");
 
         int count = 0;
+
+
+        parser.setReplayMode(true);
 
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
 
@@ -58,5 +61,8 @@ public class AOFLoader {
         } catch (Exception e) {
             System.out.println("Error loading AOF: " + e.getMessage());
         }
+
+
+        parser.setReplayMode(false);
     }
 }

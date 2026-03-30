@@ -18,44 +18,37 @@ public class HeliosDbApplication {
         System.out.println("Application starting...");
 
         String filePath = "aof.log";
-
         boolean FAST_START = false;
 
-        System.out.println("📂 AOF absolute path: " + new File(filePath).getAbsolutePath());
+        System.out.println("AOF absolute path: " + new File(filePath).getAbsolutePath());
 
         InMemoryStore store = new InMemoryStore();
 
-        // Persistence
         AOFLogger logger = new AOFLogger(filePath);
         KeyValueService service = new KeyValueService(store, logger);
 
-        // Command layer
         CommandRegistry registry = new CommandRegistry(service);
         CommandParser parser = new CommandParser(registry);
 
-
-        try {
-            AOFLoader loader = new AOFLoader(filePath, parser);
-            loader.load(FAST_START);
-        } catch (Exception e) {
-            System.out.println("Failed to load AOF: " + e.getMessage());
-        }
+        //  LOAD AOF
+        AOFLoader loader = new AOFLoader(filePath, parser);
+        loader.load(FAST_START);
 
         // TTL
         TTLManager ttlManager = new TTLManager(store);
         ttlManager.start();
 
-        // Start server
-        System.out.println("Starting TCP Server...");
         TCPServer server = new TCPServer(6379, parser);
-        server.start();
 
-        System.out.println("Server started on port 6379");
-
-
+        // SHUTDOWN HOOK (BEFORE START)
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.out.println("Shutting down...");
+            server.stop();
+            logger.flush();
             logger.close();
         }));
+
+        System.out.println("Starting TCP Server...");
+        server.start();
     }
 }
