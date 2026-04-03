@@ -11,14 +11,14 @@ public class KeyValueService {
     private final KeyValueStore store;
     private final AOFLogger logger;
 
-    private boolean isReplay = false; // 🔥 IMPORTANT
+    private boolean isReplay = false;
 
     public KeyValueService(KeyValueStore store, AOFLogger logger) {
         this.store = store;
         this.logger = logger;
     }
 
-    // 🔥 Replay mode setter
+    // Replay mode setter
     public void setReplayMode(boolean replay) {
         this.isReplay = replay;
     }

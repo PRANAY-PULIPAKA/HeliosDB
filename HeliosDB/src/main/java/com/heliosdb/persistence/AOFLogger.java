@@ -10,22 +10,30 @@ public class AOFLogger {
 
     public AOFLogger(String filePath) throws IOException {
         this.writer = new BufferedWriter(new FileWriter(filePath, true));
+
+        // Background flush thread
+        new Thread(() -> {
+            while (true) {
+                try {
+                    Thread.sleep(1000);
+                    flush();
+                } catch (Exception ignored) {}
+            }
+        }, "aof-flush-thread").start();
     }
 
-    public synchronized void log(String command) {
+    public void log(String command) {
         try {
             writer.write(command);
             writer.newLine();
-            writer.flush(); // safe for now (later we optimize)
         } catch (IOException e) {
-            System.out.println("Failed to write to AOF: " + e.getMessage());
+            System.out.println("AOF write failed");
         }
     }
 
     public synchronized void flush() {
         try {
             writer.flush();
-            System.out.println("AOF flushed");
         } catch (IOException e) {
             System.out.println("Flush failed");
         }
@@ -34,9 +42,8 @@ public class AOFLogger {
     public synchronized void close() {
         try {
             writer.close();
-            System.out.println("AOF logger closed");
         } catch (IOException e) {
-            System.out.println("Failed to close AOF logger");
+            System.out.println("Close failed");
         }
     }
 }

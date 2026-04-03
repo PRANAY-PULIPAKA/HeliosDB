@@ -1,13 +1,19 @@
 package com.heliosdb.store;
 
+import com.heliosdb.ttl.ExpiryEntry;
+
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.PriorityBlockingQueue;
 
 public class InMemoryStore implements KeyValueStore {
 
-    // Thread-safe map
     private final Map<String, ValueWrapper> store = new ConcurrentHashMap<>();
+
+    // Thread-safe Priority Queue
+    private final PriorityBlockingQueue<ExpiryEntry> expiryQueue =
+            new PriorityBlockingQueue<>();
 
     @Override
     public void set(String key, String value) {
@@ -16,15 +22,12 @@ public class InMemoryStore implements KeyValueStore {
 
     @Override
     public void set(String key, String value, long ttlMillis) {
-
-        long current = System.currentTimeMillis();
-        long expiryTime = current + ttlMillis;
-
-        System.out.println("STORE TTL millis = " + ttlMillis);
-        System.out.println("Current time = " + current);
-        System.out.println("Expiry time = " + expiryTime);
+        long expiryTime = System.currentTimeMillis() + ttlMillis;
 
         store.put(key, new ValueWrapper(value, expiryTime));
+
+        // Push into heap
+        expiryQueue.add(new ExpiryEntry(key, expiryTime));
     }
 
     @Override
@@ -36,14 +39,10 @@ public class InMemoryStore implements KeyValueStore {
 
         long now = System.currentTimeMillis();
 
-        System.out.println("GET key = " + key);
-        System.out.println("NOW = " + now);
-        System.out.println("EXPIRY = " + wrapper.getExpiryTime());
+        if (wrapper.getExpiryTime() != -1 &&
+                now > wrapper.getExpiryTime()) {
 
-
-        if (wrapper.getExpiryTime() != -1 && now > wrapper.getExpiryTime()) {
-            System.out.println("KEY EXPIRED (lazy)");
-            store.remove(key);
+            store.remove(key); // lazy delete
             return null;
         }
 
@@ -65,31 +64,33 @@ public class InMemoryStore implements KeyValueStore {
         return store.keySet();
     }
 
-    // For testing
     @Override
     public int size() {
         return store.size();
     }
 
+    // OPTIMIZED CLEANUP (NO FULL SCAN)
     public void cleanUpExpiredKeys() {
 
-        int removed = 0;
         long now = System.currentTimeMillis();
 
-        for (Map.Entry<String, ValueWrapper> entry : store.entrySet()) {
+        while (!expiryQueue.isEmpty()) {
 
-            ValueWrapper wrapper = entry.getValue();
+            ExpiryEntry entry = expiryQueue.peek();
 
-            if (wrapper.getExpiryTime() != -1 &&
-                    now > wrapper.getExpiryTime()) {
+            if (entry.getExpiryTime() > now) {
+                break; // heap top not expired → stop
+            }
+
+            expiryQueue.poll();
+
+            ValueWrapper wrapper = store.get(entry.getKey());
+
+            if (wrapper != null &&
+                    wrapper.getExpiryTime() == entry.getExpiryTime()) {
 
                 store.remove(entry.getKey());
-                removed++;
             }
-        }
-
-        if (removed > 0) {
-            System.out.println("TTL Cleanup removed: " + removed);
         }
     }
 }

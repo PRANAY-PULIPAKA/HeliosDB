@@ -5,6 +5,8 @@ import com.heliosdb.command.CommandParser;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class TCPServer {
 
@@ -13,6 +15,9 @@ public class TCPServer {
 
     private ServerSocket serverSocket;
     private volatile boolean running = true;
+
+    //Thread pool instead of new Thread()
+    private final ExecutorService pool = Executors.newFixedThreadPool(10);
 
     public TCPServer(int port, CommandParser parser) {
         this.port = port;
@@ -28,12 +33,12 @@ public class TCPServer {
             while (running) {
                 try {
                     Socket socket = serverSocket.accept();
-                    new Thread(() -> handleClient(socket)).start();
+
+                    // Use pool
+                    pool.submit(() -> handleClient(socket));
+
                 } catch (IOException e) {
-                    if (!running) {
-                        System.out.println("Server shutting down...");
-                        break;
-                    }
+                    if (!running) break;
                     e.printStackTrace();
                 }
             }
@@ -45,14 +50,14 @@ public class TCPServer {
 
     public void stop() {
         running = false;
+
         try {
-            if (serverSocket != null && !serverSocket.isClosed()) {
+            if (serverSocket != null) {
                 serverSocket.close();
-                System.out.println("Server socket closed");
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        } catch (IOException ignored) {}
+
+        pool.shutdown();
     }
 
     private void handleClient(Socket socket) {
